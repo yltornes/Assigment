@@ -14,6 +14,7 @@ import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,6 +22,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
 import java.util.logging.Logger;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 public class CSVProcessor {
@@ -95,11 +97,17 @@ public class CSVProcessor {
 	}
 	
 	public static void saveToFiles(Path destinationPath, Map<String, Set<Enrollee>> readyForOutoput) {
-		SimpleDateFormat dateFormat = new SimpleDateFormat("yyyyMMddHHmmss");
+		Comparator<Enrollee> orderByLastAndFirstName = (enroll1, enroll2) -> {  //Comparator to sort by Insurance Company(Asc), UserID(Asc) and Version (Desc) 
+			int result = enroll1.getLastName().compareTo(enroll2.getLastName());
+			if (result == 0) {
+				result = enroll1.getFirstName().compareTo(enroll2.getFirstName());
+			};
+			return result;
+		};		
 		for(String companyName : readyForOutoput.keySet()) {
-			Path exitPath = Paths.get(destinationPath.toAbsolutePath() + File.separator +  companyName + "-" + dateFormat.format(LocalDateTime.now()) + ".csv");
+			Path exitPath = Paths.get(destinationPath.toAbsolutePath() + File.separator +  companyName + "-" + LocalDate.now().toString() + ".csv");
 			try(PrintWriter pw = new PrintWriter(Files.newBufferedWriter(exitPath, StandardCharsets.UTF_8, StandardOpenOption.CREATE))) {
-				readyForOutoput.get(companyName).forEach(e -> pw.println(
+				readyForOutoput.get(companyName).stream().sorted(orderByLastAndFirstName).forEach(e -> pw.println(
 						e.getUserId() + "," +
 						e.getFirstName() + "," + 
 						e.getLastName() + "," + 
